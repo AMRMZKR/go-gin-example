@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db-go:
+    image: mysql:8.0
+    command: mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: test
+      # MYSQL_USER: root
+      # MYSQL_PASSWORD: secret
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - '3306:3306'
+    volumes:
+      - './docker/db/data:/var/lib/mysql'
+      - './docker/db/my.cnf:/etc/mysql/conf.d/my.cnf'
+      - './docker/db/sql:/docker-entrypoint-initdb.d'
+    networks:
+      - backend
+  cache:
+    image: redis:6.2-alpine
+    restart: "no"
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes: 
+      - cache:/data
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  db:
+    driver: local
+  cache:
+    driver: local

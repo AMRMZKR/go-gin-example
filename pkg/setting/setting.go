@@ -4,7 +4,11 @@ import (
 	"log"
 	"time"
 
+	"os"
+
+	"github.com/apsdehal/go-logger"
 	"github.com/go-ini/ini"
+	"github.com/sakirsensoy/genv"
 )
 
 type App struct {
@@ -62,9 +66,15 @@ var RedisSetting = &Redis{}
 
 var cfg *ini.File
 
+var _log *logger.Logger
+
 // Setup initialize the configuration instance
 func Setup() {
 	var err error
+	_log, err = logger.New("test", 1, os.Stdout)
+	if err != nil {
+		panic(err) // Check for error
+	}
 	cfg, err = ini.Load("conf/app.ini")
 	if err != nil {
 		log.Fatalf("setting.Setup, fail to parse 'conf/app.ini': %v", err)
@@ -72,8 +82,9 @@ func Setup() {
 
 	mapTo("app", AppSetting)
 	mapTo("server", ServerSetting)
-	mapTo("database", DatabaseSetting)
 	mapTo("redis", RedisSetting)
+
+	initDatabaseConfig(DatabaseSetting)
 
 	AppSetting.ImageMaxSize = AppSetting.ImageMaxSize * 1024 * 1024
 	ServerSetting.ReadTimeout = ServerSetting.ReadTimeout * time.Second
@@ -87,4 +98,14 @@ func mapTo(section string, v interface{}) {
 	if err != nil {
 		log.Fatalf("Cfg.MapTo %s err: %v", section, err)
 	}
+}
+
+func initDatabaseConfig(v *Database) {
+	v.Type = genv.Key("DB_TYPE").Default("mysql").String()
+	v.Host = genv.Key("DB_HOST").Default("127.0.0.1").String()
+	v.User = genv.Key("DB_USER").Default("root").String()
+	v.Password = genv.Key("DB_PASSWORD").Default("secret").String()
+	v.Name = genv.Key("DB_NAME").Default("test").String()
+	v.TablePrefix = genv.Key("DB_TABLE_PREFIX").Default("").String()
+	_log.InfoF("%v", *v)
 }
